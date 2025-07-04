@@ -1,6 +1,14 @@
-# Library to preprocess data
+# This is a library for preprocessing data
+    # inplace=True is deprecated and being phased out
+    # This means we assign the dataframe directly instead of using it
+    # ✅ df = df.drop(columns=['index'])
+    # ❌ df.drop(columns=['index'], inplace=True)
+
+# Dependencies
 import pandas as pd
 import regex as re
+import sqlite3
+import os
 
 # Defining Warnings
 def validate_dataframe(dataframe):
@@ -10,6 +18,42 @@ def validate_column_exists(dataframe, column_name):
     validate_dataframe(dataframe)
     if column_name not in dataframe.columns:
         raise ValueError(f"Column '{column_name}' not found in dataframe.")
+
+# Might migrate to pathlib over os considering this is only used in higher level programing
+# Data Loading
+def data_load(path, db_name, table_name=None):
+    """
+    Loads one or more tables from a SQLite database into pandas DataFrames.
+    Best done as such:
+        df_raw = data_load('data', 'database.db')
+
+    Parameters:
+    - path (str): Directory path to the database.
+    - db_name (str): SQLite database file name.
+    - table_name (str, optional): Specific table to load. If None, auto-detects all tables.
+
+    Returns:
+    - DataFrame: The loaded table (even if multiple exist, returns the first by default).
+    """
+    db_path = os.path.join(path, db_name)
+    conn = sqlite3.connect(db_path)
+
+    if table_name is None:
+        tables = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table';", conn)
+        table_list = tables['name'].tolist()
+
+        if not table_list:
+            conn.close()
+            raise ValueError("No tables found in the database.")
+
+        if len(table_list) > 1:
+            print(f"[Info] Multiple tables found: {table_list}. Defaulting to '{table_list[0]}'.")
+
+        table_name = table_list[0]  # Default to the first table
+
+    dataframe = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
+    conn.close()
+    return dataframe
 
 # Basic cleaning
 def clean_string_columns(dataframe):
@@ -25,7 +69,7 @@ def clean_string_columns(dataframe):
 
 # Binary Converter
 def convert_yes_no_to_binary(dataframe):
-    dataframe.replace({'yes': 1, 'no': 0}, inplace=True) # Standardise; yes = 1
+    dataframe = dataframe.replace({'yes': 1, 'no': 0}) # Standardise; yes = 1
     return dataframe
 
 # Remove all non-numeric text and convert to numeric
@@ -72,8 +116,14 @@ def replace_values(dataframe, column_name, to_replace, value=None):
 # Drop Values
 def drop_values(dataframe, column_name, values=None, condition=None):
     validate_column_exists(dataframe, column_name)
-    # - values: A single value or list/tuple/set of values to drop (equality match).
-    # - condition: A callable (e.g., lambda x: x > 10) to define custom condition.
+    """
+    - values: A single value or list/tuple/set of values to drop (equality match).
+    eg. drop_values(df, "status", values=["Unknown", "N/A", "Pending"])
+    - condition: A callable (e.g., lambda x: x > 10) to define custom condition.
+    eg. drop_values(df, "balance", condition=lambda x: x < 0)
+    """
+
+    # Drop by values
     if values is not None:
         if isinstance(values, (list, tuple, set)):
             dataframe = dataframe[~dataframe[column_name].isin(values)]
@@ -83,22 +133,7 @@ def drop_values(dataframe, column_name, values=None, condition=None):
     # Drop by condition
     if condition is not None:
         dataframe = dataframe[~dataframe[column_name].apply(condition)]
-
     return dataframe
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Binning (Discretization)
 # Unsupervised Discretization
@@ -119,7 +154,7 @@ def drop_values(dataframe, column_name, values=None, condition=None):
 # - Winsorization
 # - Exclusion
 
-# Explore how the libraries in
+# Explore how the libraries handle it
 # scikit-learn
 # numpy
 # optbin
