@@ -1,20 +1,12 @@
-# Foreword
-In light of previous coding failures and being unable to understand the syntax of pandas simply because i dont have sufficient experience in it. i have decided that it would be better to create a library to for use in data processing.
+# Purpose
+In light of previous coding failures and being unable to understand the syntax of pandas simply because i dont have sufficient experience in it. i have decided that it would be better to create a library to for use in data processing. I found it largely odd that i have to code the preprocessing of data twice.
+- Once during the EDA
+- Second during the pipeline
 
-there are 2 major problems i wish to resolve
-1. Overeliance on object orient programing (OOP): Started learning OOP and wish make code more functional. This is crucial in readability and cooperation with potential teamates until i can align with their own libraries. 
-2. Speed of coding: In challenges and evalutation of coding ability, the ability to code quickly is a highly weighted metric.  Creating a library to speed it up will be beneficial.
+Considering functions can be imported like a module it would be easier and less error prone if i used the same code for both of these steps.
 
-# Dependencies
-Pandas as pd  
-regex as re  
+The problem would be the fact it is not easily readable or verifyable for other readers.
+This is why after every transformative step we should verify with basic examination commands like df.head() in the EDA. I also included a unit test to compare the transformations between a pipeline and the EDA
 
-
-# Usage
-Import the file, preferably as 
-
-import data_preprocessing as dp  
-
-if in a jupyter notebook, you can use the command '%run data_processing.py'
-
-# Defined functions and use
+This would also be more important during scenarios where i have to examine a database quickly and not get stuck on syntax. This also allows for automated processing where i can load certain commonly done transformations and skip much of the cleaning and go straight into feature engineering.
+This is evident in coding challenges where theres a time limit, using the library should BUY TIME

@@ -1,4 +1,4 @@
-# This is a library for preprocessing data
+# This is a ultility library for preprocessing data
     # inplace=True is deprecated and being phased out
     # This means we assign the dataframe directly instead of using it
     # ✅ df = df.drop(columns=['index'])
@@ -6,6 +6,7 @@
 
 # Dependencies
 import pandas as pd
+from pandas.testing import assert_frame_equal
 import regex as re
 import sqlite3
 import os
@@ -25,7 +26,7 @@ def data_load(path, db_name, table_name=None):
     """
     Loads one or more tables from a SQLite database into pandas DataFrames.
     Best done as such:
-        df_raw = data_load('data', 'database.db')
+        df_raw = dp.data_load('data', 'database.db')
 
     Parameters:
     - path (str): Directory path to the database.
@@ -135,6 +136,59 @@ def drop_values(dataframe, column_name, values=None, condition=None):
         dataframe = dataframe[~dataframe[column_name].apply(condition)]
     return dataframe
 
+# Check Duplicates
+def duplicate_analysis(dataframe, column_name, preview=False):
+    # Get all duplicated rows based on the column
+    df_duplicate = dataframe[dataframe[column_name].duplicated(keep=False)].sort_values(by=column_name)
+
+    total_duplicates = df_duplicate.shape[0]
+    unique_duplicated_values = df_duplicate[column_name].nunique()
+
+    print(f'Total duplicated rows = {total_duplicates}')
+    print(f'Unique duplicated {column_name} values = {unique_duplicated_values}')
+    
+    # Reset index for easy pair comparison
+    df_duplicate = df_duplicate.reset_index(drop=True)
+
+    # Split into first and second appearances
+    df1 = df_duplicate.iloc[0::2].reset_index(drop=True)
+    df2 = df_duplicate.iloc[1::2].reset_index(drop=True)
+
+    # Compare the features
+    differences = (df1 != df2).sum()
+
+    print("\nDifferences between first and second appearances (column-wise):")
+    print(differences[differences > 0])
+
+    # Optionally preview data
+    if preview:
+        print("\nFirst appearances:")
+        display(df1.head(5))
+        print("\nSecond appearances:")
+        display(df2.head(5))
+
+    return df_duplicate
+
+# Unit Test for verification
+def Preprocessing_Verification(dataframe):
+    """
+    This is for checking whether preprocessing in the notebook is the same in the pipeline
+    May have to make this more robust if im doing preprocessing for different models and need a unit test that can adapt to all models
+    Run the command below in ipynb prior to execution to export the cleaned data
+    {target dataframe}.to_csv('data/verification.csv', index=False)
+    Ideally we run this at the end of the preprocessing pipeline
+    """
+    csv_path = 'data/verification.csv'
+    ipynb_df = pd.read_csv(csv_path)
+
+    try:
+        assert_frame_equal(dataframe, ipynb_df, check_dtype=False)
+        print("✅ Verified: DataFrames match")
+    except AssertionError as e:
+        print("❌ DataFrames do not match:")
+        print(e)
+        raise
+
 # Binning (Discretization)
 # Unsupervised Discretization
 # - Equal-wdith binning
@@ -160,7 +214,7 @@ def drop_values(dataframe, column_name, values=None, condition=None):
 # optbin
 # discretiztion (R)
 
-#this isnt great, replace it
+#this isnt great, replace it soon
 def bin_values(dataframe, column_name, bins, labels=None, new_column_name=None, right=True):
     """
     Bin values in a DataFrame column.
